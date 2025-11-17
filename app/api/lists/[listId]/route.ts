@@ -3,14 +3,12 @@ import { db } from "@/lib/db";
 import { lists } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-interface ListParams {
-  params: {
-    listId: string;
-  };
-}
-
-export async function PATCH(request: NextRequest, { params }: ListParams) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ listId: string }> }
+) {
   try {
+    const { listId } = await context.params;
     const { name, color, icon } = await request.json();
 
     const updatedValues: Record<string, any> = {};
@@ -31,7 +29,7 @@ export async function PATCH(request: NextRequest, { params }: ListParams) {
 
     db.update(lists)
       .set(updatedValues)
-      .where(eq(lists.id, params.listId))
+      .where(eq(lists.id, listId))
       .run();
 
     return NextResponse.json({ success: true });
@@ -44,9 +42,12 @@ export async function PATCH(request: NextRequest, { params }: ListParams) {
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: ListParams) {
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ listId: string }> }
+) {
   try {
-    const listId = params.listId;
+    const { listId } = await context.params;
 
     // Prevent deleting default inbox list
     const list = db.select().from(lists).where(eq(lists.id, listId)).get();

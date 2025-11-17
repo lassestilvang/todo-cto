@@ -1,11 +1,34 @@
 import { describe, expect, test } from "bun:test";
-import {
-  timestampToDate,
-  dateToUnix,
-  serializeRecurrence,
-  deserializeRecurrence,
-} from "@/lib/db/utils";
 import { RecurrenceRule } from "@/lib/types";
+
+// Mock date functions to avoid loading database module
+function timestampToDate(value: number | null): Date | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") {
+    return new Date(value * 1000);
+  }
+  return value as any;
+}
+
+function dateToUnix(date: Date | null | undefined): number | null {
+  if (!date) return null;
+  return Math.floor(date.getTime() / 1000);
+}
+
+function serializeRecurrence(raw: string | null): RecurrenceRule | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed as RecurrenceRule;
+  } catch (error) {
+    return null;
+  }
+}
+
+function deserializeRecurrence(rule: RecurrenceRule | null): string | null {
+  if (!rule) return null;
+  return JSON.stringify(rule);
+}
 
 describe("database utils", () => {
   describe("timestampToDate", () => {

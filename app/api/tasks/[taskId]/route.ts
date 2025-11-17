@@ -8,16 +8,10 @@ import {
   changeLogs,
   attachments,
 } from "@/lib/db/schema";
-import { eq, notInArray } from "drizzle-orm";
+import { eq, notInArray, desc, and, inArray } from "drizzle-orm";
 import { dateToUnix, mapTask, timestampToDate, serializeRecurrence } from "@/lib/db/utils";
 import { nanoid } from "@/lib/utils";
 import { parseISO } from "date-fns";
-
-interface TaskParams {
-  params: {
-    taskId: string;
-  };
-}
 
 async function getTask(taskId: string) {
   return db.query.tasks.findFirst({
@@ -35,15 +29,19 @@ async function getTask(taskId: string) {
         orderBy: (fields) => [fields.position],
       },
       changeLogs: {
-        orderBy: (fields) => [fields.createdAt.desc()],
+        orderBy: (fields) => [desc(fields.createdAt)],
       },
     },
   });
 }
 
-export async function GET(_request: NextRequest, { params }: TaskParams) {
+export async function GET(
+  _request: NextRequest,
+  context: { params: Promise<{ taskId: string }> }
+) {
   try {
-    const task = await getTask(params.taskId);
+    const { taskId } = await context.params;
+    const task = await getTask(taskId);
 
     if (!task) {
       return NextResponse.json(
@@ -117,9 +115,12 @@ export async function GET(_request: NextRequest, { params }: TaskParams) {
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: TaskParams) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ taskId: string }> }
+) {
   try {
-    const taskId = params.taskId;
+    const { taskId } = await context.params;
     const payload = await request.json();
     const existing = await getTask(taskId);
 
@@ -224,8 +225,10 @@ export async function PATCH(request: NextRequest, { params }: TaskParams) {
 
       if (labelsToRemove.length > 0) {
         db.delete(taskLabels)
-          .where(eq(taskLabels.taskId, taskId))
-          .where(notInArray(taskLabels.labelId, labelsToAdd))
+          .where(and(
+            eq(taskLabels.taskId, taskId),
+            inArray(taskLabels.labelId, labelsToRemove)
+          ))
           .run();
       }
     }
@@ -319,9 +322,12 @@ export async function PATCH(request: NextRequest, { params }: TaskParams) {
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: TaskParams) {
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ taskId: string }> }
+) {
   try {
-    const taskId = params.taskId;
+    const { taskId } = await context.params;
 
     const existing = await getTask(taskId);
     if (!existing) {

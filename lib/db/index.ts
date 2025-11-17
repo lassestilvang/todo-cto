@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 import { lists } from "./schema";
 import { nanoid } from "@/lib/utils";
@@ -14,8 +14,8 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const sqlite = new Database(dbPath, { create: true, readwrite: true });
-sqlite.exec("PRAGMA journal_mode = WAL;");
+const sqlite = new Database(dbPath);
+sqlite.pragma("journal_mode = WAL");
 
 export const db = drizzle(sqlite, { schema });
 

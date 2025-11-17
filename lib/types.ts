@@ -121,7 +121,9 @@ export interface CreateTaskInput {
   recurrence?: RecurrenceType;
   labelIds?: string[];
   subtasks?: Array<{ title: string }>;
+  subtaskTitles?: string[];
   reminders?: Array<{ remindAt: Date }>;
+  reminderDates?: string[];
 }
 
 export interface UpdateTaskInput {
@@ -137,6 +139,16 @@ export interface UpdateTaskInput {
   recurrence?: RecurrenceType | null;
   completed?: boolean;
   labelIds?: string[];
+  subtasks?: Array<{
+    id?: string;
+    title: string;
+    completed?: boolean;
+    position?: number;
+  }>;
+  reminders?: Array<{
+    id?: string;
+    remindAt: Date | string;
+  }>;
 }
 
 export interface CreateListInput {

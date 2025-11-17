@@ -123,7 +123,7 @@ export function TaskDialog({
             title,
             completed: false,
             position: index,
-          })),
+          })) as any,
         });
         toast.success("Task updated successfully");
       } else {

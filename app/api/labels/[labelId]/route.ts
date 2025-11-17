@@ -3,14 +3,12 @@ import { db } from "@/lib/db";
 import { labels, taskLabels } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-interface LabelParams {
-  params: {
-    labelId: string;
-  };
-}
-
-export async function PATCH(request: NextRequest, { params }: LabelParams) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ labelId: string }> }
+) {
   try {
+    const { labelId } = await context.params;
     const { name, color, icon } = await request.json();
 
     const updatedValues: Record<string, any> = {};
@@ -31,7 +29,7 @@ export async function PATCH(request: NextRequest, { params }: LabelParams) {
 
     db.update(labels)
       .set(updatedValues)
-      .where(eq(labels.id, params.labelId))
+      .where(eq(labels.id, labelId))
       .run();
 
     return NextResponse.json({ success: true });
@@ -44,14 +42,19 @@ export async function PATCH(request: NextRequest, { params }: LabelParams) {
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: LabelParams) {
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ labelId: string }> }
+) {
   try {
+    const { labelId } = await context.params;
+
     db.delete(taskLabels)
-      .where(eq(taskLabels.labelId, params.labelId))
+      .where(eq(taskLabels.labelId, labelId))
       .run();
 
     db.delete(labels)
-      .where(eq(labels.id, params.labelId))
+      .where(eq(labels.id, labelId))
       .run();
 
     return NextResponse.json({ success: true });

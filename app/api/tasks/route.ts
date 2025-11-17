@@ -16,11 +16,12 @@ export async function GET(request: NextRequest) {
     const listId = searchParams.get("listId");
     const includeCompleted = searchParams.get("includeCompleted") === "true";
 
-    let tasksList;
+    type TaskQueryResult = Awaited<ReturnType<typeof db.query.tasks.findMany>>;
+    let tasksList: TaskQueryResult;
 
     if (listId) {
       // Get tasks for a specific list
-      tasksList = db.query.tasks.findMany({
+      tasksList = await db.query.tasks.findMany({
         where: (fields) => {
           const conditions = [eq(fields.listId, listId)];
           if (!includeCompleted) {
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
           break;
       }
 
-      tasksList = db.query.tasks.findMany({
+      tasksList = await db.query.tasks.findMany({
         where: whereConditions,
         with: {
           list: true,
@@ -113,7 +114,7 @@ export async function GET(request: NextRequest) {
       });
     } else {
       // Get all tasks
-      tasksList = db.query.tasks.findMany({
+      tasksList = await db.query.tasks.findMany({
         where: includeCompleted ? undefined : (fields) => eq(fields.completed, false),
         with: {
           list: true,
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const mappedTasks = tasksList.map((task) => ({
+    const mappedTasks = (tasksList as any[]).map((task) => ({
       ...mapTask(task),
       list: {
         id: task.list.id,
@@ -142,7 +143,7 @@ export async function GET(request: NextRequest) {
         createdAt: timestampToDate(task.list.createdAt) ?? new Date(),
         updatedAt: timestampToDate(task.list.updatedAt) ?? new Date(),
       },
-      labels: task.labels.map((entry) => ({
+      labels: task.labels.map((entry: any) => ({
         id: entry.label.id,
         name: entry.label.name,
         color: entry.label.color,
@@ -150,7 +151,7 @@ export async function GET(request: NextRequest) {
         createdAt: timestampToDate(entry.label.createdAt) ?? new Date(),
         updatedAt: timestampToDate(entry.label.updatedAt) ?? new Date(),
       })),
-      subtasks: task.subtasks.map((subtask) => ({
+      subtasks: task.subtasks.map((subtask: any) => ({
         id: subtask.id,
         taskId: subtask.taskId,
         title: subtask.title,
@@ -159,7 +160,7 @@ export async function GET(request: NextRequest) {
         createdAt: timestampToDate(subtask.createdAt) ?? new Date(),
         updatedAt: timestampToDate(subtask.updatedAt) ?? new Date(),
       })),
-      reminders: task.reminders.map((reminder) => ({
+      reminders: task.reminders.map((reminder: any) => ({
         id: reminder.id,
         taskId: reminder.taskId,
         remindAt: timestampToDate(reminder.remindAt) ?? new Date(),
@@ -217,7 +218,7 @@ export async function POST(request: NextRequest) {
         priority,
         recurrence: recurrence ? JSON.stringify(recurrence) : null,
         completed: false,
-      })
+      } as typeof tasks.$inferInsert)
       .run();
 
     // Insert labels
@@ -227,7 +228,7 @@ export async function POST(request: NextRequest) {
           labelIds.map((labelId: string) => ({
             taskId,
             labelId,
-          }))
+          })) as typeof taskLabels.$inferInsert[]
         )
         .run();
     }
@@ -242,7 +243,7 @@ export async function POST(request: NextRequest) {
             title: subtaskTitle,
             completed: false,
             position: index,
-          }))
+          })) as typeof subtasks.$inferInsert[]
         )
         .run();
     }
@@ -255,7 +256,7 @@ export async function POST(request: NextRequest) {
             id: nanoid(),
             taskId,
             remindAt: dateToUnix(parseISO(reminderDate))!,
-          }))
+          })) as typeof reminders.$inferInsert[]
         )
         .run();
     }
@@ -270,7 +271,7 @@ export async function POST(request: NextRequest) {
         newValue: null,
         description: "Task created",
         actor: "user",
-      })
+      } as typeof changeLogs.$inferInsert)
       .run();
 
     return NextResponse.json({ id: taskId }, { status: 201 });

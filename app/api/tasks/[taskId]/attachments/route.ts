@@ -6,14 +6,12 @@ import { nanoid } from "@/lib/utils";
 import fs from "fs";
 import path from "path";
 
-interface TaskAttachmentParams {
-  params: {
-    taskId: string;
-  };
-}
-
-export async function POST(request: NextRequest, { params }: TaskAttachmentParams) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ taskId: string }> }
+) {
   try {
+    const { taskId } = await context.params;
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -39,7 +37,7 @@ export async function POST(request: NextRequest, { params }: TaskAttachmentParam
     db.insert(attachments)
       .values({
         id: fileId,
-        taskId: params.taskId,
+        taskId,
         name: file.name,
         url: relativeUrl,
         mimeType: file.type,
@@ -50,7 +48,7 @@ export async function POST(request: NextRequest, { params }: TaskAttachmentParam
     db.insert(changeLogs)
       .values({
         id: nanoid(),
-        taskId: params.taskId,
+        taskId,
         field: "attachment",
         previousValue: null,
         newValue: file.name,
@@ -66,12 +64,16 @@ export async function POST(request: NextRequest, { params }: TaskAttachmentParam
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: TaskAttachmentParams) {
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ taskId: string }> }
+) {
   try {
+    const { taskId } = await context.params;
     const attachment = db
       .select()
       .from(attachments)
-      .where(eq(attachments.id, params.taskId))
+      .where(eq(attachments.id, taskId))
       .get();
 
     if (!attachment) {
@@ -84,7 +86,7 @@ export async function DELETE(_request: NextRequest, { params }: TaskAttachmentPa
     }
 
     db.delete(attachments)
-      .where(eq(attachments.id, params.taskId))
+      .where(eq(attachments.id, taskId))
       .run();
 
     db.insert(changeLogs)

@@ -1,6 +1,6 @@
-import { Database } from "bun:sqlite";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import Database from "better-sqlite3";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { drizzle } from "drizzle-orm/better-sqlite3";
 import path from "path";
 import fs from "fs";
 import * as schema from "./schema";
@@ -13,7 +13,7 @@ export function runMigrations() {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  const sqlite = new Database(dbPath, { create: true, readwrite: true });
+  const sqlite = new Database(dbPath);
   const db = drizzle(sqlite, { schema });
 
   migrate(db, { migrationsFolder: "./lib/db/migrations" });
