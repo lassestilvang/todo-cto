@@ -1,0 +1,11 @@
+import { defineConfig } from "drizzle-kit";
+
+export default defineConfig({
+  schema: "./lib/db/schema.ts",
+  out: "./lib/db/migrations",
+  dialect: "sqlite",
+  driver: "bun:sqlite",
+  dbCredentials: {
+    url: "./data/planner.db",
+  },
+});
