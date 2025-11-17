@@ -1,6 +1,6 @@
-import Database from "better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { Database } from "bun:sqlite";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+import { drizzle } from "drizzle-orm/bun-sqlite";
 import path from "path";
 import fs from "fs";
 import * as schema from "./schema";
