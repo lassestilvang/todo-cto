@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, CalendarDays, Clock, Inbox, List as ListIcon, Plus, Tag, AlertCircle } from "lucide-react";
+import { Calendar, CalendarDays, Clock, List as ListIcon, Plus, AlertCircle } from "lucide-react";
 import { useLists } from "@/lib/hooks/useLists";
 import { useLabels } from "@/lib/hooks/useLabels";
 import { useOverdueTasksCount } from "@/lib/hooks/useOverdueTasks";
@@ -15,14 +15,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { CreateListDialog } from "./create-list-dialog";
 import { CreateLabelDialog } from "./create-label-dialog";
-import { cn } from "@/lib/utils";
 
 const viewItems = [
   { id: "today", icon: Calendar, label: "Today" },

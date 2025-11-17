@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCreateTask, useUpdateTask } from "@/lib/hooks/useTasks";
 import { useLists } from "@/lib/hooks/useLists";
 import { useLabels } from "@/lib/hooks/useLabels";
-import { Task, Priority, RecurrenceType } from "@/lib/types";
+import { Task, Priority, RecurrenceType, UpdateTaskInput } from "@/lib/types";
 import { toast } from "sonner";
 import {
   Select,
@@ -29,7 +29,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { CalendarIcon, Clock, Flag, Plus, X, Repeat } from "lucide-react";
+import { CalendarIcon, Clock, Plus, X, Repeat } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface TaskDialogProps {
@@ -50,36 +50,19 @@ export function TaskDialog({
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [listId, setListId] = useState(defaultListId || "");
-  const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
-  const [deadline, setDeadline] = useState<Date | undefined>(undefined);
-  const [priority, setPriority] = useState<Priority>("none");
-  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
-  const [estimatedMinutes, setEstimatedMinutes] = useState("");
+  const [title, setTitle] = useState(task?.title || "");
+  const [description, setDescription] = useState(task?.description || "");
+  const [listId, setListId] = useState(task?.listId || defaultListId || "");
+  const [scheduleDate, setScheduleDate] = useState<Date | undefined>(task?.scheduleDate || undefined);
+  const [deadline, setDeadline] = useState<Date | undefined>(task?.deadline || undefined);
+  const [priority, setPriority] = useState<Priority>(task?.priority || "none");
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>(task?.labels?.map((l) => l.id) || []);
+  const [estimatedMinutes, setEstimatedMinutes] = useState(task?.estimatedMinutes?.toString() || "");
   const [subtaskInput, setSubtaskInput] = useState("");
-  const [subtasks, setSubtasks] = useState<string[]>([]);
-  const [recurrence, setRecurrence] = useState<RecurrenceType | null>(null);
+  const [subtasks, setSubtasks] = useState<string[]>(task?.subtasks?.map((s) => s.title) || []);
+  const [recurrence, setRecurrence] = useState<RecurrenceType | null>(task?.recurrence || null);
 
-  useEffect(() => {
-    if (task) {
-      setTitle(task.title);
-      setDescription(task.description || "");
-      setListId(task.listId);
-      setScheduleDate(task.scheduleDate || undefined);
-      setDeadline(task.deadline || undefined);
-      setPriority(task.priority);
-      setSelectedLabelIds(task.labels?.map((l) => l.id) || []);
-      setEstimatedMinutes(task.estimatedMinutes?.toString() || "");
-      setSubtasks(task.subtasks?.map((s) => s.title) || []);
-      setRecurrence(task.recurrence || null);
-    } else {
-      resetForm();
-    }
-  }, [task, open, defaultListId]);
-
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setTitle("");
     setDescription("");
     setListId(defaultListId || lists[0]?.id || "");
@@ -91,7 +74,7 @@ export function TaskDialog({
     setSubtaskInput("");
     setSubtasks([]);
     setRecurrence(null);
-  };
+  }, [defaultListId, lists]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +91,15 @@ export function TaskDialog({
 
     try {
       if (task) {
-        await updateTask.mutateAsync({
+        const formattedSubtasks: UpdateTaskInput["subtasks"] = subtasks.length
+          ? subtasks.map((title, index) => ({
+              title,
+              completed: false,
+              position: index,
+            }))
+          : undefined;
+
+        const updateInput: UpdateTaskInput = {
           id: task.id,
           title,
           description: description || undefined,
@@ -119,12 +110,9 @@ export function TaskDialog({
           labelIds: selectedLabelIds,
           estimatedMinutes: estimatedMinutes ? parseInt(estimatedMinutes) : undefined,
           recurrence: recurrence || undefined,
-          subtasks: subtasks.map((title, index) => ({
-            title,
-            completed: false,
-            position: index,
-          })) as any,
-        });
+          ...(formattedSubtasks ? { subtasks: formattedSubtasks } : {}),
+        };
+        await updateTask.mutateAsync(updateInput);
         toast.success("Task updated successfully");
       } else {
         await createTask.mutateAsync({
@@ -144,7 +132,7 @@ export function TaskDialog({
 
       resetForm();
       onOpenChange(false);
-    } catch (error) {
+    } catch {
       toast.error(task ? "Failed to update task" : "Failed to create task");
     }
   };

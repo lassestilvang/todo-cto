@@ -11,7 +11,11 @@ export async function PATCH(
     const { listId } = await context.params;
     const { name, color, icon } = await request.json();
 
-    const updatedValues: Record<string, any> = {};
+    const updatedValues: Partial<{
+      name: string;
+      color: string;
+      icon: string;
+    }> = {};
 
     if (name !== undefined) {
       updatedValues.name = name;

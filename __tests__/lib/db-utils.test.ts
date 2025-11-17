@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { RecurrenceRule } from "@/lib/types";
 
 // Mock date functions to avoid loading database module
-function timestampToDate(value: number | null): Date | null {
+function timestampToDate(value: number | Date | null | undefined): Date | null {
   if (value === null || value === undefined) return null;
   if (typeof value === "number") {
     return new Date(value * 1000);
   }
-  return value as any;
+  return value;
 }
 
 function dateToUnix(date: Date | null | undefined): number | null {
@@ -20,7 +20,7 @@ function serializeRecurrence(raw: string | null): RecurrenceRule | null {
   try {
     const parsed = JSON.parse(raw);
     return parsed as RecurrenceRule;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

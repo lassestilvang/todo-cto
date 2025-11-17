@@ -23,13 +23,6 @@ const priorityColors = {
   none: "text-gray-500",
 };
 
-const priorityLabels = {
-  high: "High",
-  medium: "Medium",
-  low: "Low",
-  none: "None",
-};
-
 export function TaskItem({ task, onClick }: TaskItemProps) {
   const updateTask = useUpdateTask();
   const [isCompleting, setIsCompleting] = useState(false);
@@ -47,7 +40,7 @@ export function TaskItem({ task, onClick }: TaskItemProps) {
       if (!task.completed) {
         toast.success("Task completed! 🎉");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to update task");
     } finally {
       setTimeout(() => setIsCompleting(false), 300);
