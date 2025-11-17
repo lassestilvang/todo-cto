@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, initializeDefaultList } from "@/lib/db";
 import { tasks, subtasks, reminders, taskLabels, changeLogs } from "@/lib/db/schema";
 import { nanoid } from "@/lib/utils";
-import { eq, and, gte, lte, or, isNull, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { mapTask, timestampToDate, dateToUnix } from "@/lib/db/utils";
 import { startOfDay, endOfDay, addDays, parseISO } from "date-fns";
+
+type TaskFields = {
+  scheduleDate: number | null;
+  deadline: number | null;
+  completed: number;
+  listId: string;
+};
 
 // Initialize default list on first access
 initializeDefaultList();
@@ -53,7 +60,7 @@ export async function GET(request: NextRequest) {
 
       switch (view) {
         case "today":
-          whereConditions = (fields: any) => {
+          whereConditions = (fields: TaskFields) => {
             const conditions = [
               gte(fields.scheduleDate, dateToUnix(startToday)!),
               lte(fields.scheduleDate, dateToUnix(endToday)!),
@@ -65,7 +72,7 @@ export async function GET(request: NextRequest) {
           };
           break;
         case "next7days":
-          whereConditions = (fields: any) => {
+          whereConditions = (fields: TaskFields) => {
             const conditions = [
               gte(fields.scheduleDate, dateToUnix(startToday)!),
               lte(fields.scheduleDate, dateToUnix(end7Days)!),
@@ -77,7 +84,7 @@ export async function GET(request: NextRequest) {
           };
           break;
         case "upcoming":
-          whereConditions = (fields: any) => {
+          whereConditions = (fields: TaskFields) => {
             const conditions = [gte(fields.scheduleDate, dateToUnix(startToday)!)];
             if (!includeCompleted) {
               conditions.push(eq(fields.completed, false));
@@ -87,7 +94,7 @@ export async function GET(request: NextRequest) {
           break;
         case "all":
         default:
-          whereConditions = (fields: any) => {
+          whereConditions = (fields: TaskFields) => {
             if (!includeCompleted) {
               return eq(fields.completed, false);
             }
@@ -132,7 +139,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const mappedTasks = (tasksList as any[]).map((task) => ({
+    type TaskQueryRow = TaskQueryResult[0];
+    type LabelEntry = { label: { id: string; name: string; color: string; icon: string; createdAt: number; updatedAt: number } };
+    type SubtaskRow = { id: string; taskId: string; title: string; completed: number; position: number; createdAt: number; updatedAt: number };
+    type ReminderRow = { id: string; taskId: string; remindAt: number; createdAt: number };
+
+    const mappedTasks = tasksList.map((task: TaskQueryRow) => ({
       ...mapTask(task),
       list: {
         id: task.list.id,
@@ -143,7 +155,7 @@ export async function GET(request: NextRequest) {
         createdAt: timestampToDate(task.list.createdAt) ?? new Date(),
         updatedAt: timestampToDate(task.list.updatedAt) ?? new Date(),
       },
-      labels: task.labels.map((entry: any) => ({
+      labels: task.labels.map((entry: LabelEntry) => ({
         id: entry.label.id,
         name: entry.label.name,
         color: entry.label.color,
@@ -151,7 +163,7 @@ export async function GET(request: NextRequest) {
         createdAt: timestampToDate(entry.label.createdAt) ?? new Date(),
         updatedAt: timestampToDate(entry.label.updatedAt) ?? new Date(),
       })),
-      subtasks: task.subtasks.map((subtask: any) => ({
+      subtasks: task.subtasks.map((subtask: SubtaskRow) => ({
         id: subtask.id,
         taskId: subtask.taskId,
         title: subtask.title,
@@ -160,7 +172,7 @@ export async function GET(request: NextRequest) {
         createdAt: timestampToDate(subtask.createdAt) ?? new Date(),
         updatedAt: timestampToDate(subtask.updatedAt) ?? new Date(),
       })),
-      reminders: task.reminders.map((reminder: any) => ({
+      reminders: task.reminders.map((reminder: ReminderRow) => ({
         id: reminder.id,
         taskId: reminder.taskId,
         remindAt: timestampToDate(reminder.remindAt) ?? new Date(),
@@ -203,7 +215,6 @@ export async function POST(request: NextRequest) {
     }
 
     const taskId = nanoid();
-    const now = new Date();
 
     // Insert task
     db.insert(tasks)

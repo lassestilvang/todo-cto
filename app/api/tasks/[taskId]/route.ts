@@ -6,12 +6,10 @@ import {
   reminders,
   taskLabels,
   changeLogs,
-  attachments,
 } from "@/lib/db/schema";
-import { eq, notInArray, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { dateToUnix, mapTask, timestampToDate, serializeRecurrence } from "@/lib/db/utils";
 import { nanoid } from "@/lib/utils";
-import { parseISO } from "date-fns";
 
 async function getTask(taskId: string) {
   return db.query.tasks.findFirst({
@@ -131,7 +129,7 @@ export async function PATCH(
       );
     }
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, string | number | boolean | null> = {};
     const changeLogEntries: Array<{
       field: string | null;
       previousValue: string | null;
@@ -139,7 +137,7 @@ export async function PATCH(
       description: string;
     }> = [];
 
-    const fieldsToCompare: Record<string, { current: any; incoming: any; formatter?: (value: any) => any }> = {
+    const fieldsToCompare: Record<string, { current: unknown; incoming: unknown }> = {
       title: { current: existing.title, incoming: payload.title },
       description: { current: existing.description, incoming: payload.description ?? null },
       listId: { current: existing.listId, incoming: payload.listId },
