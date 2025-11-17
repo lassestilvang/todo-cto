@@ -15,10 +15,10 @@ export const lists = sqliteTable("lists", {
   isDefault: integer("is_default", { mode: "boolean" })
     .notNull()
     .default(false),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  createdAt: integer("created_at")
     .notNull()
     .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
+  updatedAt: integer("updated_at")
     .notNull()
     .default(sql`(unixepoch())`),
 });
@@ -28,10 +28,10 @@ export const labels = sqliteTable("labels", {
   name: text("name").notNull(),
   color: text("color").notNull(),
   icon: text("icon").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  createdAt: integer("created_at")
     .notNull()
     .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
+  updatedAt: integer("updated_at")
     .notNull()
     .default(sql`(unixepoch())`),
 });
@@ -43,8 +43,8 @@ export const tasks = sqliteTable("tasks", {
     .references(() => lists.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
-  scheduleDate: integer("schedule_date", { mode: "timestamp" }),
-  deadline: integer("deadline", { mode: "timestamp" }),
+  scheduleDate: integer("schedule_date"),
+  deadline: integer("deadline"),
   estimatedMinutes: integer("estimated_minutes"),
   actualMinutes: integer("actual_minutes"),
   priority: text("priority")
@@ -54,11 +54,11 @@ export const tasks = sqliteTable("tasks", {
   completed: integer("completed", { mode: "boolean" })
     .notNull()
     .default(false),
-  completedAt: integer("completed_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  completedAt: integer("completed_at"),
+  createdAt: integer("created_at")
     .notNull()
     .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
+  updatedAt: integer("updated_at")
     .notNull()
     .default(sql`(unixepoch())`),
 });
@@ -83,8 +83,8 @@ export const reminders = sqliteTable("reminders", {
   taskId: text("task_id")
     .notNull()
     .references(() => tasks.id, { onDelete: "cascade" }),
-  remindAt: integer("remind_at", { mode: "timestamp" }).notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  remindAt: integer("remind_at").notNull(),
+  createdAt: integer("created_at")
     .notNull()
     .default(sql`(unixepoch())`),
 });
@@ -99,10 +99,10 @@ export const subtasks = sqliteTable("subtasks", {
     .notNull()
     .default(false),
   position: integer("position").notNull().default(0),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  createdAt: integer("created_at")
     .notNull()
     .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
+  updatedAt: integer("updated_at")
     .notNull()
     .default(sql`(unixepoch())`),
 });
@@ -116,7 +116,7 @@ export const attachments = sqliteTable("attachments", {
   url: text("url").notNull(),
   mimeType: text("mime_type"),
   size: integer("size"),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  createdAt: integer("created_at")
     .notNull()
     .default(sql`(unixepoch())`),
 });
@@ -133,7 +133,7 @@ export const changeLogs = sqliteTable(
     newValue: text("new_value"),
     description: text("description").notNull(),
     actor: text("actor").notNull().default("system"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at")
       .notNull()
       .default(sql`(unixepoch())`),
   },
