@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCreateTask, useUpdateTask } from "@/lib/hooks/useTasks";
 import { useLists } from "@/lib/hooks/useLists";
 import { useLabels } from "@/lib/hooks/useLabels";
-import { Task, Priority } from "@/lib/types";
+import { Task, Priority, RecurrenceType } from "@/lib/types";
 import { toast } from "sonner";
 import {
   Select,
@@ -29,7 +29,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { CalendarIcon, Clock, Flag, Plus, X } from "lucide-react";
+import { CalendarIcon, Clock, Flag, Plus, X, Repeat } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface TaskDialogProps {
@@ -60,6 +60,7 @@ export function TaskDialog({
   const [estimatedMinutes, setEstimatedMinutes] = useState("");
   const [subtaskInput, setSubtaskInput] = useState("");
   const [subtasks, setSubtasks] = useState<string[]>([]);
+  const [recurrence, setRecurrence] = useState<RecurrenceType | null>(null);
 
   useEffect(() => {
     if (task) {
@@ -72,6 +73,7 @@ export function TaskDialog({
       setSelectedLabelIds(task.labels?.map((l) => l.id) || []);
       setEstimatedMinutes(task.estimatedMinutes?.toString() || "");
       setSubtasks(task.subtasks?.map((s) => s.title) || []);
+      setRecurrence(task.recurrence || null);
     } else {
       resetForm();
     }
@@ -88,6 +90,7 @@ export function TaskDialog({
     setEstimatedMinutes("");
     setSubtaskInput("");
     setSubtasks([]);
+    setRecurrence(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,6 +118,7 @@ export function TaskDialog({
           priority,
           labelIds: selectedLabelIds,
           estimatedMinutes: estimatedMinutes ? parseInt(estimatedMinutes) : undefined,
+          recurrence: recurrence || undefined,
           subtasks: subtasks.map((title, index) => ({
             title,
             completed: false,
@@ -132,6 +136,7 @@ export function TaskDialog({
           priority,
           labelIds: selectedLabelIds,
           estimatedMinutes: estimatedMinutes ? parseInt(estimatedMinutes) : undefined,
+          recurrence: recurrence || undefined,
           subtaskTitles: subtasks,
         });
         toast.success("Task created successfully");
@@ -298,6 +303,30 @@ export function TaskDialog({
               placeholder="60"
               min="0"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="recurrence">Recurrence</Label>
+            <Select
+              value={recurrence || "none"}
+              onValueChange={(value) =>
+                setRecurrence(value === "none" ? null : (value as RecurrenceType))
+              }
+            >
+              <SelectTrigger>
+                <Repeat className="mr-2 size-4" />
+                <SelectValue placeholder="Does not repeat" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Does not repeat</SelectItem>
+                <SelectItem value="daily">Every day</SelectItem>
+                <SelectItem value="weekdays">Every weekday (Mon-Fri)</SelectItem>
+                <SelectItem value="weekly">Every week</SelectItem>
+                <SelectItem value="monthly">Every month</SelectItem>
+                <SelectItem value="yearly">Every year</SelectItem>
+                <SelectItem value="custom">Custom...</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

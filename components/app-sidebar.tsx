@@ -1,8 +1,9 @@
 "use client";
 
-import { Calendar, CalendarDays, Clock, Inbox, List as ListIcon, Plus, Tag } from "lucide-react";
+import { Calendar, CalendarDays, Clock, Inbox, List as ListIcon, Plus, Tag, AlertCircle } from "lucide-react";
 import { useLists } from "@/lib/hooks/useLists";
 import { useLabels } from "@/lib/hooks/useLabels";
+import { useOverdueTasksCount } from "@/lib/hooks/useOverdueTasks";
 import { useAppStore } from "@/lib/stores/useAppStore";
 import {
   Sidebar,
@@ -17,6 +18,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { CreateListDialog } from "./create-list-dialog";
 import { CreateLabelDialog } from "./create-label-dialog";
@@ -32,6 +34,7 @@ const viewItems = [
 export function AppSidebar() {
   const { data: lists = [] } = useLists();
   const { data: labels = [] } = useLabels();
+  const overdueCount = useOverdueTasksCount();
   const { currentView, currentListId, setCurrentView, setCurrentListId } = useAppStore();
   const [showCreateList, setShowCreateList] = useState(false);
   const [showCreateLabel, setShowCreateLabel] = useState(false);
@@ -48,7 +51,15 @@ export function AppSidebar() {
     <>
       <Sidebar>
         <SidebarHeader className="border-b px-4 py-3">
-          <h1 className="text-xl font-bold">FocusFlow</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold">FocusFlow</h1>
+            {overdueCount > 0 && (
+              <Badge variant="destructive" className="gap-1">
+                <AlertCircle className="size-3" />
+                {overdueCount}
+              </Badge>
+            )}
+          </div>
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
@@ -62,7 +73,12 @@ export function AppSidebar() {
                       isActive={currentView === item.id}
                     >
                       <item.icon className="size-4" />
-                      <span>{item.label}</span>
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {item.id === "today" && overdueCount > 0 && (
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-semibold text-destructive-foreground">
+                          {overdueCount}
+                        </span>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
