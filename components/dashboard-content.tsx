@@ -5,7 +5,7 @@ import { useAppStore } from "@/lib/stores/useAppStore";
 import { useTasks } from "@/lib/hooks/useTasks";
 import { TaskItem } from "@/components/task-item";
 import { TaskDialog } from "@/components/task-dialog";
-import { TaskDetailSheet } from "@/components/task-detail-sheet";
+import { Task } from "@/lib/types";
 import { useTaskSearch } from "@/lib/hooks/useSearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLabels } from "@/lib/hooks/useLabels";
 import { useLists } from "@/lib/hooks/useLists";
-import { useTask } from "@/lib/hooks/useTasks";
 
 export function DashboardContent() {
   const {
@@ -28,10 +27,8 @@ export function DashboardContent() {
     setSearchQuery,
     toggleShowCompletedTasks,
   } = useAppStore();
-  const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
-  const [taskToEdit, setTaskToEdit] = useState<any>(null);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
   const { data: lists = [] } = useLists();
   const { data: labels = [] } = useLabels();
@@ -68,9 +65,9 @@ export function DashboardContent() {
 
   const searchedTasks = useTaskSearch(filteredTasks, searchQuery);
 
-  const handleTaskClick = (taskId: string) => {
-    setDetailTaskId(taskId);
-    setDetailOpen(true);
+  const handleTaskClick = (task: Task) => {
+    setTaskToEdit(task);
+    setShowTaskDialog(true);
   };
 
   const handleCreateTask = () => {
@@ -78,10 +75,11 @@ export function DashboardContent() {
     setShowTaskDialog(true);
   };
 
-  const handleEditFromDetail = (task: any) => {
-    setTaskToEdit(task);
-    setDetailOpen(false);
-    setShowTaskDialog(true);
+  const handleTaskDialogOpenChange = (open: boolean) => {
+    setShowTaskDialog(open);
+    if (!open) {
+      setTaskToEdit(null);
+    }
   };
 
   return (
@@ -160,7 +158,7 @@ export function DashboardContent() {
                     <TaskItem
                       key={task.id}
                       task={task}
-                      onClick={() => handleTaskClick(task.id)}
+                      onClick={handleTaskClick}
                     />
                   ))}
                 </div>
@@ -172,16 +170,9 @@ export function DashboardContent() {
 
       <TaskDialog
         open={showTaskDialog}
-        onOpenChange={setShowTaskDialog}
-        task={taskToEdit ?? null}
+        onOpenChange={handleTaskDialogOpenChange}
+        task={taskToEdit}
         defaultListId={currentListId ?? undefined}
-      />
-
-      <TaskDetailSheet
-        taskId={detailTaskId}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        onEdit={handleEditFromDetail}
       />
     </div>
   );
