@@ -13,7 +13,7 @@ import { useState } from "react";
 
 interface TaskItemProps {
   task: Task;
-  onClick: () => void;
+  onClick: (task: Task) => void;
 }
 
 const priorityColors = {
@@ -69,7 +69,7 @@ export function TaskItem({ task, onClick }: TaskItemProps) {
         task.completed && "opacity-60",
         isOverdue && "border-red-500/50"
       )}
-      onClick={onClick}
+      onClick={() => onClick(task)}
     >
       <div className="flex gap-3">
         <div className="pt-0.5" onClick={handleToggleComplete}>

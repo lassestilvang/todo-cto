@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -75,6 +75,30 @@ export function TaskDialog({
     setSubtasks([]);
     setRecurrence(null);
   }, [defaultListId, lists]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    if (task) {
+      setTitle(task.title);
+      setDescription(task.description || "");
+      setListId(task.listId ?? defaultListId ?? lists[0]?.id ?? "");
+      setScheduleDate(task.scheduleDate ?? undefined);
+      setDeadline(task.deadline ?? undefined);
+      setPriority(task.priority ?? "none");
+      setSelectedLabelIds(task.labels?.map((l) => l.id) || []);
+      setEstimatedMinutes(
+        task.estimatedMinutes != null ? task.estimatedMinutes.toString() : ""
+      );
+      setSubtaskInput("");
+      setSubtasks(task.subtasks?.map((s) => s.title) || []);
+      setRecurrence(task.recurrence ?? null);
+    } else {
+      resetForm();
+    }
+  }, [task, open, defaultListId, lists, resetForm]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,11 +185,7 @@ export function TaskDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{task ? "Edit Task" : "Create New Task"}</DialogTitle>
-          <DialogDescription>
-            {task
-              ? "Update the details of your task"
-              : "Fill in the details to create a new task"}
-          </DialogDescription>
+          <DialogDescription>Fill in the details for this task.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
