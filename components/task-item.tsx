@@ -8,8 +8,9 @@ import { format, isPast, isToday, isTomorrow } from "date-fns";
 import { Calendar, CheckSquare, Clock, Flag } from "lucide-react";
 import { useUpdateTask } from "@/lib/hooks/useTasks";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
+import { announce } from "@/components/aria-announcer";
 
 interface TaskItemProps {
   task: Task;
@@ -26,9 +27,9 @@ const priorityColors = {
 export function TaskItem({ task, onClick }: TaskItemProps) {
   const updateTask = useUpdateTask();
   const [isCompleting, setIsCompleting] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
-  const handleToggleComplete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleToggleComplete = async () => {
     setIsCompleting(true);
 
     try {
@@ -37,13 +38,30 @@ export function TaskItem({ task, onClick }: TaskItemProps) {
         completed: !task.completed,
       });
 
+      const action = !task.completed ? "completed" : "marked incomplete";
+      announce(`Task ${task.title} ${action}`);
+
       if (!task.completed) {
         toast.success("Task completed! 🎉");
       }
     } catch {
+      announce("Failed to update task", "assertive");
       toast.error("Failed to update task");
     } finally {
       setTimeout(() => setIsCompleting(false), 300);
+    }
+  };
+
+  const handleToggleClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    await handleToggleComplete();
+  };
+
+  const handleToggleKeyDown = async (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.stopPropagation();
+      await handleToggleComplete();
     }
   };
 
@@ -60,25 +78,41 @@ export function TaskItem({ task, onClick }: TaskItemProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.2 }}
+      exit={shouldReduceMotion ? undefined : { opacity: 0, x: -20 }}
+      transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
       className={cn(
-        "group relative rounded-lg border bg-card p-4 transition-all hover:shadow-md",
+        "group relative rounded-lg border bg-card p-4 transition-all hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring",
         task.completed && "opacity-60",
         isOverdue && "border-red-500/50"
       )}
       onClick={() => onClick(task)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick(task);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Task ${task.title}${task.completed ? ", completed" : ""}${isOverdue ? ", overdue" : ""}`}
     >
       <div className="flex gap-3">
-        <div className="pt-0.5" onClick={handleToggleComplete}>
+        <button
+          type="button"
+          className="pt-0.5"
+          onClick={handleToggleClick}
+          onKeyDown={handleToggleKeyDown}
+          aria-label={task.completed ? "Mark as incomplete" : "Mark as complete"}
+        >
           <Checkbox
             checked={task.completed}
             disabled={isCompleting}
             className="size-5"
+            aria-hidden="true"
           />
-        </div>
+        </button>
 
         <div className="flex-1 space-y-2">
           <div className="flex items-start justify-between gap-2">
@@ -92,7 +126,10 @@ export function TaskItem({ task, onClick }: TaskItemProps) {
             </h3>
 
             {task.priority !== "none" && (
-              <Flag className={cn("size-4 shrink-0", priorityColors[task.priority])} />
+              <div className="flex items-center gap-1" aria-label={`${task.priority} priority`}>
+                <Flag className={cn("size-4 shrink-0", priorityColors[task.priority])} aria-hidden="true" />
+                <span className="sr-only">{task.priority} priority</span>
+              </div>
             )}
           </div>
 
@@ -102,10 +139,10 @@ export function TaskItem({ task, onClick }: TaskItemProps) {
             </p>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2" role="list" aria-label="Task metadata">
             {task.scheduleDate && (
-              <Badge variant="outline" className="gap-1 text-xs">
-                <Calendar className="size-3" />
+              <Badge variant="outline" className="gap-1 text-xs" role="listitem" aria-label={`Scheduled for ${getDateLabel(task.scheduleDate)}`}>
+                <Calendar className="size-3" aria-hidden="true" />
                 {getDateLabel(task.scheduleDate)}
               </Badge>
             )}
@@ -114,16 +151,18 @@ export function TaskItem({ task, onClick }: TaskItemProps) {
               <Badge
                 variant={isOverdue ? "destructive" : "outline"}
                 className="gap-1 text-xs"
+                role="listitem"
+                aria-label={isOverdue ? `Deadline ${format(task.deadline, "MMM d, h:mm a")} overdue` : `Deadline ${format(task.deadline, "MMM d, h:mm a")}`}
               >
-                <Clock className="size-3" />
+                <Clock className="size-3" aria-hidden="true" />
                 {format(task.deadline, "MMM d, h:mm a")}
                 {isOverdue && " (Overdue)"}
               </Badge>
             )}
 
             {hasSubtasks && (
-              <Badge variant="secondary" className="gap-1 text-xs">
-                <CheckSquare className="size-3" />
+              <Badge variant="secondary" className="gap-1 text-xs" role="listitem" aria-label={`${completedSubtasks} of ${totalSubtasks} subtasks completed`}>
+                <CheckSquare className="size-3" aria-hidden="true" />
                 {completedSubtasks}/{totalSubtasks}
               </Badge>
             )}
@@ -134,15 +173,17 @@ export function TaskItem({ task, onClick }: TaskItemProps) {
                 variant="outline"
                 className="gap-1 text-xs"
                 style={{ borderColor: label.color, color: label.color }}
+                role="listitem"
+                aria-label={`Label ${label.name}`}
               >
-                <span>{label.icon}</span>
+                <span aria-hidden="true">{label.icon}</span>
                 {label.name}
               </Badge>
             ))}
 
             {task.list && (
-              <Badge variant="secondary" className="gap-1 text-xs">
-                <span>{task.list.icon}</span>
+              <Badge variant="secondary" className="gap-1 text-xs" role="listitem" aria-label={`List ${task.list.name}`}>
+                <span aria-hidden="true">{task.list.icon}</span>
                 {task.list.name}
               </Badge>
             )}

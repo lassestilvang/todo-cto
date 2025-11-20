@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Search, X, ListChecks } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLabels } from "@/lib/hooks/useLabels";
@@ -125,32 +125,65 @@ export function DashboardContent() {
         </div>
 
         <div className="flex flex-col gap-4 md:flex-row">
-          <Input
-            placeholder="Search tasks, descriptions, or labels..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="md:w-96"
-          />
+          <div className="relative md:w-96" role="search">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+              <Search className="size-4" aria-hidden="true" />
+            </span>
+            <Input
+              aria-label="Search tasks"
+              placeholder="Search tasks, descriptions, or labels..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-10"
+            />
+            {searchQuery && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 size-8 -translate-y-1/2"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+              >
+                <X className="size-4" aria-hidden="true" />
+              </Button>
+            )}
+          </div>
         </div>
 
-        <Card className="h-full">
+        <Card className="h-full" aria-live="polite">
           <CardHeader>
             <CardTitle className="text-lg font-semibold">
-              {searchedTasks.length} task{searchedTasks.length !== 1 ? "s" : ""}
+              {isLoading ? "Loading tasks..." : `${searchedTasks.length} task${searchedTasks.length !== 1 ? "s" : ""}`}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[60vh] pr-4">
               {isLoading ? (
-                <div className="flex h-full items-center justify-center">
-                  <Loader2 className="size-6 animate-spin" />
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                  <Loader2 className="size-6 animate-spin" aria-hidden="true" />
+                  <p className="text-sm text-muted-foreground">Loading tasks, please wait...</p>
+                  <span className="sr-only">Loading tasks</span>
                 </div>
               ) : searchedTasks.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-                  <p className="text-lg font-medium">No tasks found</p>
-                  <p className="text-sm text-muted-foreground">
-                    Try creating a new task or adjust your filters.
-                  </p>
+                <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                  <div className="rounded-full bg-muted p-4">
+                    <ListChecks className="size-8 text-muted-foreground" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-medium">No tasks found</p>
+                    <p className="text-sm text-muted-foreground">
+                      {searchQuery
+                        ? `No tasks match "${searchQuery}"`
+                        : showCompletedTasks
+                        ? "Create a new task to get started"
+                        : "Try showing completed tasks or create a new one"}
+                    </p>
+                  </div>
+                  <Button onClick={handleCreateTask} size="sm">
+                    <Plus className="mr-2 size-4" aria-hidden="true" />
+                    Create Task
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-3">

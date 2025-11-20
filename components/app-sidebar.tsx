@@ -33,7 +33,14 @@ export function AppSidebar() {
   const { data: lists = [] } = useLists();
   const { data: labels = [] } = useLabels();
   const overdueCount = useOverdueTasksCount();
-  const { currentView, currentListId, setCurrentView, setCurrentListId } = useAppStore();
+  const {
+    currentView,
+    currentListId,
+    currentLabelId,
+    setCurrentView,
+    setCurrentListId,
+    setCurrentLabelId,
+  } = useAppStore();
   const [showCreateList, setShowCreateList] = useState(false);
   const [showCreateLabel, setShowCreateLabel] = useState(false);
 
@@ -45,16 +52,20 @@ export function AppSidebar() {
     setCurrentListId(listId);
   };
 
+  const handleLabelClick = (labelId: string) => {
+    setCurrentLabelId(labelId);
+  };
+
   return (
     <>
-      <Sidebar>
+      <Sidebar role="navigation" aria-label="Main navigation">
         <SidebarHeader className="border-b px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold">FocusFlow</h1>
             {overdueCount > 0 && (
-              <Badge variant="destructive" className="gap-1">
-                <AlertCircle className="size-3" />
-                {overdueCount}
+              <Badge variant="destructive" className="gap-1" aria-label={`${overdueCount} overdue task${overdueCount !== 1 ? 's' : ''}`}>
+                <AlertCircle className="size-3" aria-hidden="true" />
+                <span>{overdueCount}</span>
               </Badge>
             )}
           </div>
@@ -69,11 +80,16 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       onClick={() => handleViewClick(item.id)}
                       isActive={currentView === item.id}
+                      aria-label={`${item.label} view`}
+                      aria-current={currentView === item.id ? "page" : undefined}
                     >
-                      <item.icon className="size-4" />
+                      <item.icon className="size-4" aria-hidden="true" />
                       <span className="flex-1 truncate">{item.label}</span>
                       {item.id === "today" && overdueCount > 0 && (
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-semibold text-destructive-foreground">
+                        <span
+                          className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-semibold text-destructive-foreground"
+                          aria-label={`${overdueCount} overdue task${overdueCount !== 1 ? "s" : ""}`}
+                        >
                           {overdueCount}
                         </span>
                       )}
@@ -92,8 +108,9 @@ export function AppSidebar() {
                 size="icon"
                 className="h-6 w-6"
                 onClick={() => setShowCreateList(true)}
+                aria-label="Create new list"
               >
-                <Plus className="size-3" />
+                <Plus className="size-3" aria-hidden="true" />
               </Button>
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -103,12 +120,16 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       onClick={() => handleListClick(list.id)}
                       isActive={currentListId === list.id}
+                      aria-label={`${list.name} list`}
+                      aria-current={currentListId === list.id ? "page" : undefined}
                     >
-                      <span className="text-lg">{list.icon}</span>
+                      <span className="text-lg" aria-hidden="true">{list.icon}</span>
                       <span className="flex-1">{list.name}</span>
                       <div
                         className="size-2 rounded-full"
                         style={{ backgroundColor: list.color }}
+                        role="presentation"
+                        aria-hidden="true"
                       />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -125,20 +146,28 @@ export function AppSidebar() {
                 size="icon"
                 className="h-6 w-6"
                 onClick={() => setShowCreateLabel(true)}
+                aria-label="Create new label"
               >
-                <Plus className="size-3" />
+                <Plus className="size-3" aria-hidden="true" />
               </Button>
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {labels.map((label) => (
                   <SidebarMenuItem key={label.id}>
-                    <SidebarMenuButton>
-                      <span className="text-lg">{label.icon}</span>
+                    <SidebarMenuButton
+                      onClick={() => handleLabelClick(label.id)}
+                      isActive={currentLabelId === label.id}
+                      aria-label={`${label.name} label`}
+                      aria-current={currentLabelId === label.id ? "page" : undefined}
+                    >
+                      <span className="text-lg" aria-hidden="true">{label.icon}</span>
                       <span className="flex-1">{label.name}</span>
                       <div
                         className="size-2 rounded-full"
                         style={{ backgroundColor: label.color }}
+                        role="presentation"
+                        aria-hidden="true"
                       />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
