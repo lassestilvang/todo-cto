@@ -1,21 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/lib/stores/useAppStore";
 import { useTasks } from "@/lib/hooks/useTasks";
 import { TaskItem } from "@/components/task-item";
 import { TaskDialog } from "@/components/task-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Task } from "@/lib/types";
 import { useTaskSearch } from "@/lib/hooks/useSearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Search, X, ListChecks } from "lucide-react";
+import { Loader2, Plus, Search, X, ListChecks, Zap, Timer, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLabels } from "@/lib/hooks/useLabels";
 import { useLists } from "@/lib/hooks/useLists";
+import { AnalyticsDashboard } from "@/components/analytics-dashboard";
+import { FocusMode } from "@/components/focus-mode";
+import { QuickAddTask } from "@/components/quick-add-task";
+import { PomodoroTimer } from "@/components/pomodoro-timer";
+import { useKeyboardShortcuts, KeyboardShortcut } from "@/lib/hooks/useKeyboardShortcuts";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function DashboardContent() {
   const {
@@ -26,9 +33,14 @@ export function DashboardContent() {
     searchQuery,
     setSearchQuery,
     toggleShowCompletedTasks,
+    setCurrentView,
   } = useAppStore();
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showPomodoro, setShowPomodoro] = useState(false);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [pomodoroTask, setPomodoroTask] = useState<Task | null>(null);
 
   const { data: lists = [] } = useLists();
   const { data: labels = [] } = useLabels();
@@ -82,47 +94,148 @@ export function DashboardContent() {
     }
   };
 
+  const shortcutDefinitions: KeyboardShortcut[] = [
+    {
+      key: "q",
+      ctrl: true,
+      description: "Quick add task",
+      handler: () => setShowQuickAdd(true),
+      label: "Ctrl/Cmd + Q",
+    },
+    {
+      key: "n",
+      ctrl: true,
+      description: "New task",
+      handler: () => handleCreateTask(),
+      label: "Ctrl/Cmd + N",
+    },
+    {
+      key: "p",
+      ctrl: true,
+      shift: true,
+      description: "Start Pomodoro",
+      handler: () => {
+        setPomodoroTask(null);
+        setShowPomodoro(true);
+      },
+      label: "Ctrl/Cmd + Shift + P",
+    },
+    {
+      key: "f",
+      ctrl: true,
+      shift: true,
+      description: "Focus mode",
+      handler: () => setCurrentView("focus"),
+      label: "Ctrl/Cmd + Shift + F",
+    },
+    {
+      key: "/",
+      ctrl: true,
+      description: "Search",
+      handler: () =>
+        document.querySelector<HTMLInputElement>('input[aria-label="Search tasks"]')?.focus(),
+      label: "Ctrl/Cmd + /",
+    },
+    {
+      key: "?",
+      shift: true,
+      description: "Show keyboard shortcuts",
+      handler: () => setShowKeyboardHelp(true),
+      label: "Shift + ?",
+    },
+  ];
+
+  useKeyboardShortcuts(shortcutDefinitions);
+
+  const isAnalyticsView = currentView === "analytics";
+  const isFocusView = currentView === "focus";
+
   return (
     <div className="flex h-full flex-col">
-      <div className="space-y-6 p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold">
-              {currentView === "list" && currentListId
-                ? lists.find((list) => list.id === currentListId)?.name ?? "List"
-                : currentView === "label" && currentLabelId
-                ? `Label · ${labels.find((label) => label.id === currentLabelId)?.name ?? "Label"}`
-                : currentView === "next7days"
-                ? "Next 7 Days"
-                : currentView === "upcoming"
-                ? "Upcoming"
-                : currentView === "all"
-                ? "All Tasks"
-                : "Today"}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Stay on top of your priorities with a modern daily planner.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="toggle-completed"
-                checked={showCompletedTasks}
-                onCheckedChange={toggleShowCompletedTasks}
-              />
-              <Label htmlFor="toggle-completed" className="text-sm">
-                Show completed
-              </Label>
+      {isAnalyticsView ? (
+        <AnalyticsDashboard />
+      ) : (
+        <div className="space-y-6 p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold">
+                {currentView === "list" && currentListId
+                  ? lists.find((list) => list.id === currentListId)?.name ?? "List"
+                  : currentView === "label" && currentLabelId
+                  ? `Label · ${labels.find((label) => label.id === currentLabelId)?.name ?? "Label"}`
+                  : currentView === "next7days"
+                  ? "Next 7 Days"
+                  : currentView === "upcoming"
+                  ? "Upcoming"
+                  : currentView === "all"
+                  ? "All Tasks"
+                  : "Today"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Stay on top of your priorities with a modern daily planner.
+              </p>
             </div>
 
-            <Button onClick={handleCreateTask}>
-              <Plus className="mr-2 size-4" />
-              Add Task
-            </Button>
+            <TooltipProvider>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="toggle-completed"
+                    checked={showCompletedTasks}
+                    onCheckedChange={toggleShowCompletedTasks}
+                  />
+                  <Label htmlFor="toggle-completed" className="text-sm">
+                    Show completed
+                  </Label>
+                </div>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" onClick={() => setShowQuickAdd(true)}>
+                      <Sparkles className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Quick Add (Ctrl/Cmd + Q)</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        setPomodoroTask(null);
+                        setShowPomodoro(true);
+                      }}
+                    >
+                      <Timer className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Pomodoro Timer (Ctrl/Cmd + Shift + P)</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" onClick={() => setCurrentView("focus")}>
+                      <Zap className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Focus Mode (Ctrl/Cmd + Shift + F)</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Button onClick={handleCreateTask}>
+                  <Plus className="mr-2 size-4" />
+                  Add Task
+                </Button>
+              </div>
+            </TooltipProvider>
           </div>
-        </div>
 
         <div className="flex flex-col gap-4 md:flex-row">
           <div className="relative md:w-96" role="search">
@@ -199,7 +312,8 @@ export function DashboardContent() {
             </ScrollArea>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      )}
 
       <TaskDialog
         open={showTaskDialog}
@@ -207,6 +321,47 @@ export function DashboardContent() {
         task={taskToEdit}
         defaultListId={currentListId ?? undefined}
       />
+
+      <QuickAddTask open={showQuickAdd} onOpenChange={setShowQuickAdd} />
+
+      <PomodoroTimer
+        open={showPomodoro}
+        onOpenChange={(open) => {
+          setShowPomodoro(open);
+          if (!open) {
+            setPomodoroTask(null);
+          }
+        }}
+        task={pomodoroTask}
+      />
+
+      <Dialog open={showKeyboardHelp} onOpenChange={setShowKeyboardHelp}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Keyboard Shortcuts</DialogTitle>
+            <DialogDescription>
+              Power through your day without taking your hands off the keyboard.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {shortcutDefinitions.map((shortcut) => (
+              <div
+                key={shortcut.description}
+                className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2"
+              >
+                <span className="text-sm text-muted-foreground">{shortcut.description}</span>
+                <span className="text-xs font-semibold uppercase tracking-wide">
+                  {shortcut.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {isFocusView && (
+        <FocusMode tasks={searchedTasks} onClose={() => setCurrentView("today")} />
+      )}
     </div>
   );
 }
