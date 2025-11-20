@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, CalendarDays, Clock, List as ListIcon, Plus, AlertCircle } from "lucide-react";
+import { Calendar, CalendarDays, Clock, List as ListIcon, Plus, AlertCircle, BarChart3, Crosshair } from "lucide-react";
 import { useLists } from "@/lib/hooks/useLists";
 import { useLabels } from "@/lib/hooks/useLabels";
 import { useOverdueTasksCount } from "@/lib/hooks/useOverdueTasks";
@@ -27,6 +27,8 @@ const viewItems = [
   { id: "next7days", icon: CalendarDays, label: "Next 7 Days" },
   { id: "upcoming", icon: Clock, label: "Upcoming" },
   { id: "all", icon: ListIcon, label: "All" },
+  { id: "analytics", icon: BarChart3, label: "Analytics" },
+  { id: "focus", icon: Crosshair, label: "Focus Mode" },
 ];
 
 export function AppSidebar() {

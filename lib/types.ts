@@ -19,7 +19,15 @@ export interface RecurrenceRule {
   unit?: RecurrenceUnit;
 }
 
-export type ViewType = "today" | "next7days" | "upcoming" | "all" | "list" | "label";
+export type ViewType =
+  | "today"
+  | "next7days"
+  | "upcoming"
+  | "all"
+  | "list"
+  | "label"
+  | "analytics"
+  | "focus";
 
 export interface List {
   id: string;
@@ -175,4 +183,52 @@ export interface UpdateLabelInput {
   name?: string;
   color?: string;
   icon?: string;
+}
+
+export interface FocusSession {
+  id: string;
+  taskId: string | null;
+  duration: number;
+  completed: boolean;
+  startedAt: Date;
+  completedAt: Date | null;
+  createdAt: Date;
+}
+
+export interface TaskTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  color: string;
+  defaultListId: string | null;
+  defaultPriority: Priority;
+  defaultEstimatedMinutes: number | null;
+  templateData: string;
+  usageCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface HabitStreak {
+  id: string;
+  taskId: string;
+  currentStreak: number;
+  longestStreak: number;
+  totalCompletions: number;
+  lastCompletedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProductivityStats {
+  completedToday: number;
+  completedThisWeek: number;
+  totalFocusTime: number;
+  averageCompletionTime: number;
+  completionRate: number;
+  streak: number;
+  tasksByPriority: Record<Priority, number>;
+  tasksByList: Record<string, number>;
+  productivityTrend: Array<{ date: string; completed: number }>;
 }

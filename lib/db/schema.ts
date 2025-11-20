@@ -203,3 +203,116 @@ export const changeLogRelations = relations(changeLogs, ({ one }) => ({
     references: [tasks.id],
   }),
 }));
+
+// Pomodoro focus sessions
+export const focusSessions = sqliteTable("focus_sessions", {
+  id: text("id").primaryKey().notNull(),
+  taskId: text("task_id").references(() => tasks.id, { onDelete: "set null" }),
+  duration: integer("duration").notNull(), // in minutes
+  completed: integer("completed", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  startedAt: integer("started_at").notNull(),
+  completedAt: integer("completed_at"),
+  createdAt: integer("created_at")
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+export const focusSessionRelations = relations(focusSessions, ({ one }) => ({
+  task: one(tasks, {
+    fields: [focusSessions.taskId],
+    references: [tasks.id],
+  }),
+}));
+
+// Task templates for reusable structures
+export const taskTemplates = sqliteTable("task_templates", {
+  id: text("id").primaryKey().notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon").notNull().default("📋"),
+  color: text("color").notNull().default("#6366f1"),
+  defaultListId: text("default_list_id").references(() => lists.id, {
+    onDelete: "set null",
+  }),
+  defaultPriority: text("default_priority").notNull().default("none"),
+  defaultEstimatedMinutes: integer("default_estimated_minutes"),
+  templateData: text("template_data").notNull(), // JSON with subtasks, labels, etc.
+  usageCount: integer("usage_count").notNull().default(0),
+  createdAt: integer("created_at")
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at")
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+export const taskTemplateRelations = relations(taskTemplates, ({ one }) => ({
+  defaultList: one(lists, {
+    fields: [taskTemplates.defaultListId],
+    references: [lists.id],
+  }),
+}));
+
+// Habit tracking for recurring tasks
+export const habitStreaks = sqliteTable("habit_streaks", {
+  id: text("id").primaryKey().notNull(),
+  taskId: text("task_id")
+    .notNull()
+    .references(() => tasks.id, { onDelete: "cascade" }),
+  currentStreak: integer("current_streak").notNull().default(0),
+  longestStreak: integer("longest_streak").notNull().default(0),
+  totalCompletions: integer("total_completions").notNull().default(0),
+  lastCompletedAt: integer("last_completed_at"),
+  createdAt: integer("created_at")
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at")
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+export const habitStreakRelations = relations(habitStreaks, ({ one }) => ({
+  task: one(tasks, {
+    fields: [habitStreaks.taskId],
+    references: [tasks.id],
+  }),
+}));
+
+// Keyboard shortcuts configuration
+export const keyboardShortcuts = sqliteTable("keyboard_shortcuts", {
+  id: text("id").primaryKey().notNull(),
+  action: text("action").notNull(),
+  keys: text("keys").notNull(), // JSON array of key combination
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at")
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at")
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// Time blocks for calendar/scheduling view
+export const timeBlocks = sqliteTable("time_blocks", {
+  id: text("id").primaryKey().notNull(),
+  taskId: text("task_id").references(() => tasks.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  startTime: integer("start_time").notNull(),
+  endTime: integer("end_time").notNull(),
+  color: text("color"),
+  createdAt: integer("created_at")
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at")
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+export const timeBlockRelations = relations(timeBlocks, ({ one }) => ({
+  task: one(tasks, {
+    fields: [timeBlocks.taskId],
+    references: [tasks.id],
+  }),
+}));
