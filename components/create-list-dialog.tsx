@@ -82,19 +82,27 @@ export function CreateListDialog({ open, onOpenChange }: CreateListDialogProps) 
 
           <div className="space-y-2">
             <Label>Icon</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Select list icon">
               {defaultIcons.map((emoji) => (
                 <button
                   key={emoji}
                   type="button"
                   onClick={() => setIcon(emoji)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setIcon(emoji);
+                    }
+                  }}
                   className={`size-10 rounded-md border-2 text-xl transition-colors ${
                     icon === emoji
                       ? "border-primary bg-primary/10"
                       : "border-transparent hover:bg-muted"
                   }`}
+                  aria-label={`Icon: ${emoji}`}
+                  aria-pressed={icon === emoji}
                 >
-                  {emoji}
+                  <span aria-hidden="true">{emoji}</span>
                 </button>
               ))}
             </div>
@@ -102,16 +110,24 @@ export function CreateListDialog({ open, onOpenChange }: CreateListDialogProps) 
 
           <div className="space-y-2">
             <Label>Color</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Select list color">
               {defaultColors.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setColor(c);
+                    }
+                  }}
                   className={`size-8 rounded-full border-2 ${
                     color === c ? "border-foreground" : "border-transparent"
                   }`}
                   style={{ backgroundColor: c }}
+                  aria-label={`Color ${c}`}
+                  aria-pressed={color === c}
                 />
               ))}
             </div>

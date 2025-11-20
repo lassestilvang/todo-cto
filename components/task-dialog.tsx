@@ -61,6 +61,7 @@ export function TaskDialog({
   const [subtaskInput, setSubtaskInput] = useState("");
   const [subtasks, setSubtasks] = useState<string[]>(task?.subtasks?.map((s) => s.title) || []);
   const [recurrence, setRecurrence] = useState<RecurrenceType | null>(task?.recurrence || null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const resetForm = useCallback(() => {
     setTitle("");
@@ -74,6 +75,7 @@ export function TaskDialog({
     setSubtaskInput("");
     setSubtasks([]);
     setRecurrence(null);
+    setErrors({});
   }, [defaultListId, lists]);
 
   useEffect(() => {
@@ -100,16 +102,29 @@ export function TaskDialog({
     }
   }, [task, open, defaultListId, lists, resetForm]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
 
     if (!title.trim()) {
-      toast.error("Please enter a task title");
-      return;
+      newErrors.title = "Task title is required";
     }
 
     if (!listId) {
-      toast.error("Please select a list");
+      newErrors.listId = "Please select a list";
+    }
+
+    if (deadline && scheduleDate && deadline < scheduleDate) {
+      newErrors.deadline = "Deadline must be after schedule date";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validate()) {
       return;
     }
 
@@ -189,14 +204,30 @@ export function TaskDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Title*</Label>
+            <Label htmlFor="title">
+              Title
+              <span className="text-destructive" aria-label="required"> *</span>
+            </Label>
             <Input
               id="title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (errors.title) {
+                  setErrors({ ...errors, title: "" });
+                }
+              }}
               placeholder="e.g. Review project proposal"
               autoFocus
+              aria-required="true"
+              aria-invalid={!!errors.title}
+              aria-describedby={errors.title ? "title-error" : undefined}
             />
+            {errors.title && (
+              <p id="title-error" className="text-sm text-destructive" role="alert">
+                {errors.title}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -212,22 +243,43 @@ export function TaskDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="list">List*</Label>
-              <Select value={listId} onValueChange={setListId}>
-                <SelectTrigger>
+              <Label htmlFor="list">
+                List
+                <span className="text-destructive" aria-label="required"> *</span>
+              </Label>
+              <Select
+                value={listId}
+                onValueChange={(value) => {
+                  setListId(value);
+                  if (errors.listId) {
+                    setErrors({ ...errors, listId: "" });
+                  }
+                }}
+              >
+                <SelectTrigger
+                  id="list"
+                  aria-required="true"
+                  aria-invalid={!!errors.listId}
+                  aria-describedby={errors.listId ? "list-error" : undefined}
+                >
                   <SelectValue placeholder="Select a list" />
                 </SelectTrigger>
                 <SelectContent>
                   {lists.map((list) => (
                     <SelectItem key={list.id} value={list.id}>
                       <span className="flex items-center gap-2">
-                        <span>{list.icon}</span>
+                        <span aria-hidden="true">{list.icon}</span>
                         {list.name}
                       </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {errors.listId && (
+                <p id="list-error" className="text-sm text-destructive" role="alert">
+                  {errors.listId}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -339,7 +391,7 @@ export function TaskDialog({
 
           <div className="space-y-2">
             <Label>Labels</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Select task labels">
               {allLabels.map((label) => (
                 <Badge
                   key={label.id}
@@ -353,8 +405,18 @@ export function TaskDialog({
                     }),
                   }}
                   onClick={() => toggleLabel(label.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleLabel(label.id);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="checkbox"
+                  aria-checked={selectedLabelIds.includes(label.id)}
+                  aria-label={`${label.name} label`}
                 >
-                  <span>{label.icon}</span>
+                  <span aria-hidden="true">{label.icon}</span>
                   {label.name}
                 </Badge>
               ))}
@@ -375,12 +437,12 @@ export function TaskDialog({
                   }
                 }}
               />
-              <Button type="button" size="icon" onClick={addSubtask}>
-                <Plus className="size-4" />
+              <Button type="button" size="icon" onClick={addSubtask} aria-label="Add subtask">
+                <Plus className="size-4" aria-hidden="true" />
               </Button>
             </div>
             {subtasks.length > 0 && (
-              <div className="space-y-1 rounded-md border p-2">
+              <div className="space-y-1 rounded-md border p-2" aria-live="polite">
                 {subtasks.map((subtask, index) => (
                   <div
                     key={index}
@@ -393,8 +455,9 @@ export function TaskDialog({
                       size="icon"
                       className="size-6"
                       onClick={() => removeSubtask(index)}
+                      aria-label={`Remove subtask: ${subtask}`}
                     >
-                      <X className="size-3" />
+                      <X className="size-3" aria-hidden="true" />
                     </Button>
                   </div>
                 ))}
