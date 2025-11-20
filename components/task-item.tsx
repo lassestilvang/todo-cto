@@ -99,20 +99,16 @@ export function TaskItem({ task, onClick }: TaskItemProps) {
       aria-label={`Task ${task.title}${task.completed ? ", completed" : ""}${isOverdue ? ", overdue" : ""}`}
     >
       <div className="flex gap-3">
-        <button
-          type="button"
-          className="pt-0.5"
-          onClick={handleToggleClick}
-          onKeyDown={handleToggleKeyDown}
-          aria-label={task.completed ? "Mark as incomplete" : "Mark as complete"}
-        >
+        <div className="pt-0.5">
           <Checkbox
             checked={task.completed}
             disabled={isCompleting}
             className="size-5"
-            aria-hidden="true"
+            aria-label={task.completed ? "Mark as incomplete" : "Mark as complete"}
+            onClick={handleToggleClick}
+            onKeyDown={handleToggleKeyDown}
           />
-        </button>
+        </div>
 
         <div className="flex-1 space-y-2">
           <div className="flex items-start justify-between gap-2">
