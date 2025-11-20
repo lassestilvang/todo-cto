@@ -6,13 +6,6 @@ import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { mapTask, timestampToDate, dateToUnix } from "@/lib/db/utils";
 import { startOfDay, endOfDay, addDays, parseISO } from "date-fns";
 
-type TaskFields = {
-  scheduleDate: number | null;
-  deadline: number | null;
-  completed: number;
-  listId: string;
-};
-
 // Initialize default list on first access
 initializeDefaultList();
 
@@ -56,69 +49,105 @@ export async function GET(request: NextRequest) {
       const endToday = endOfDay(now);
       const end7Days = endOfDay(addDays(now, 7));
 
-      let whereConditions;
-
       switch (view) {
         case "today":
-          whereConditions = (fields: TaskFields) => {
-            const conditions = [
-              gte(fields.scheduleDate, dateToUnix(startToday)!),
-              lte(fields.scheduleDate, dateToUnix(endToday)!),
-            ];
-            if (!includeCompleted) {
-              conditions.push(eq(fields.completed, false));
-            }
-            return and(...conditions);
-          };
+          tasksList = await db.query.tasks.findMany({
+            where: (fields) => {
+              const conditions = [
+                gte(fields.scheduleDate, dateToUnix(startToday)!),
+                lte(fields.scheduleDate, dateToUnix(endToday)!),
+              ];
+              if (!includeCompleted) {
+                conditions.push(eq(fields.completed, false));
+              }
+              return and(...conditions);
+            },
+            with: {
+              list: true,
+              labels: {
+                with: {
+                  label: true,
+                },
+              },
+              subtasks: {
+                orderBy: (fields) => [fields.position],
+              },
+              reminders: true,
+            },
+            orderBy: (fields) => [fields.scheduleDate, desc(fields.createdAt)],
+          });
           break;
         case "next7days":
-          whereConditions = (fields: TaskFields) => {
-            const conditions = [
-              gte(fields.scheduleDate, dateToUnix(startToday)!),
-              lte(fields.scheduleDate, dateToUnix(end7Days)!),
-            ];
-            if (!includeCompleted) {
-              conditions.push(eq(fields.completed, false));
-            }
-            return and(...conditions);
-          };
+          tasksList = await db.query.tasks.findMany({
+            where: (fields) => {
+              const conditions = [
+                gte(fields.scheduleDate, dateToUnix(startToday)!),
+                lte(fields.scheduleDate, dateToUnix(end7Days)!),
+              ];
+              if (!includeCompleted) {
+                conditions.push(eq(fields.completed, false));
+              }
+              return and(...conditions);
+            },
+            with: {
+              list: true,
+              labels: {
+                with: {
+                  label: true,
+                },
+              },
+              subtasks: {
+                orderBy: (fields) => [fields.position],
+              },
+              reminders: true,
+            },
+            orderBy: (fields) => [fields.scheduleDate, desc(fields.createdAt)],
+          });
           break;
         case "upcoming":
-          whereConditions = (fields: TaskFields) => {
-            const conditions = [gte(fields.scheduleDate, dateToUnix(startToday)!)];
-            if (!includeCompleted) {
-              conditions.push(eq(fields.completed, false));
-            }
-            return and(...conditions);
-          };
+          tasksList = await db.query.tasks.findMany({
+            where: (fields) => {
+              const conditions = [gte(fields.scheduleDate, dateToUnix(startToday)!)];
+              if (!includeCompleted) {
+                conditions.push(eq(fields.completed, false));
+              }
+              return and(...conditions);
+            },
+            with: {
+              list: true,
+              labels: {
+                with: {
+                  label: true,
+                },
+              },
+              subtasks: {
+                orderBy: (fields) => [fields.position],
+              },
+              reminders: true,
+            },
+            orderBy: (fields) => [fields.scheduleDate, desc(fields.createdAt)],
+          });
           break;
         case "all":
         default:
-          whereConditions = (fields: TaskFields) => {
-            if (!includeCompleted) {
-              return eq(fields.completed, false);
-            }
-            return undefined;
-          };
+          tasksList = await db.query.tasks.findMany({
+            where: includeCompleted ? undefined : (fields) => eq(fields.completed, false),
+            with: {
+              list: true,
+              labels: {
+                with: {
+                  label: true,
+                },
+              },
+              subtasks: {
+                orderBy: (fields) => [fields.position],
+              },
+              reminders: true,
+            },
+            orderBy: (fields) => [fields.scheduleDate, desc(fields.createdAt)],
+          });
           break;
       }
-
-      tasksList = await db.query.tasks.findMany({
-        where: whereConditions,
-        with: {
-          list: true,
-          labels: {
-            with: {
-              label: true,
-            },
-          },
-          subtasks: {
-            orderBy: (fields) => [fields.position],
-          },
-          reminders: true,
-        },
-        orderBy: (fields) => [fields.scheduleDate, desc(fields.createdAt)],
-      });
     } else {
       // Get all tasks
       tasksList = await db.query.tasks.findMany({
@@ -139,22 +168,37 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    type TaskQueryRow = TaskQueryResult[0];
     type LabelEntry = { label: { id: string; name: string; color: string; icon: string; createdAt: number; updatedAt: number } };
     type SubtaskRow = { id: string; taskId: string; title: string; completed: number; position: number; createdAt: number; updatedAt: number };
     type ReminderRow = { id: string; taskId: string; remindAt: number; createdAt: number };
-
-    const mappedTasks = tasksList.map((task: TaskQueryRow) => ({
-      ...mapTask(task),
+    type TaskQueryRow = TaskQueryResult[0] & {
       list: {
-        id: task.list.id,
-        name: task.list.name,
-        color: task.list.color,
-        icon: task.list.icon,
-        isDefault: Boolean(task.list.isDefault),
-        createdAt: timestampToDate(task.list.createdAt) ?? new Date(),
-        updatedAt: timestampToDate(task.list.updatedAt) ?? new Date(),
-      },
+        id: string;
+        name: string;
+        color: string;
+        icon: string;
+        isDefault?: number | boolean;
+        createdAt: number;
+        updatedAt: number;
+      } | null;
+      labels: LabelEntry[];
+      subtasks: SubtaskRow[];
+      reminders: ReminderRow[];
+    };
+
+    const mappedTasks = (tasksList as TaskQueryRow[]).map((task) => ({
+      ...mapTask(task),
+      list: task.list
+        ? {
+            id: task.list.id,
+            name: task.list.name,
+            color: task.list.color,
+            icon: task.list.icon,
+            isDefault: Boolean(task.list.isDefault),
+            createdAt: timestampToDate(task.list.createdAt) ?? new Date(),
+            updatedAt: timestampToDate(task.list.updatedAt) ?? new Date(),
+          }
+        : null,
       labels: task.labels.map((entry: LabelEntry) => ({
         id: entry.label.id,
         name: entry.label.name,

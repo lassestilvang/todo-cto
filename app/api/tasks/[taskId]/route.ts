@@ -149,14 +149,14 @@ export async function PATCH(
 
     if (payload.scheduleDate !== undefined) {
       fieldsToCompare.scheduleDate = {
-        current: existing.scheduleDate ? existing.scheduleDate.toISOString() : null,
+        current: existing.scheduleDate ? new Date(existing.scheduleDate).toISOString() : null,
         incoming: payload.scheduleDate ? new Date(payload.scheduleDate).toISOString() : null,
       };
     }
 
     if (payload.deadline !== undefined) {
       fieldsToCompare.deadline = {
-        current: existing.deadline ? existing.deadline.toISOString() : null,
+        current: existing.deadline ? new Date(existing.deadline).toISOString() : null,
         incoming: payload.deadline ? new Date(payload.deadline).toISOString() : null,
       };
     }
@@ -171,9 +171,9 @@ export async function PATCH(
     for (const [field, { current, incoming }] of Object.entries(fieldsToCompare)) {
       if (incoming !== undefined && incoming !== current) {
         if (field === "scheduleDate" || field === "deadline") {
-          updates[field] = incoming ? dateToUnix(new Date(incoming)) : null;
+          updates[field] = incoming ? dateToUnix(new Date(incoming as string)) : null;
         } else if (field === "recurrence") {
-          updates[field] = incoming;
+          updates[field] = incoming as string | null;
         } else if (field === "completed" && incoming === true) {
           updates.completedAt = dateToUnix(new Date());
           updates.completed = true;
@@ -181,7 +181,7 @@ export async function PATCH(
           updates.completedAt = null;
           updates.completed = false;
         } else {
-          updates[field] = incoming;
+          updates[field] = incoming as string | number | boolean | null;
         }
 
         changeLogEntries.push({
@@ -249,7 +249,7 @@ export async function PATCH(
 
       changeLogEntries.push({
         field: "reminders",
-        previousValue: existing.reminders.map((r) => r.remindAt.toISOString()).join(","),
+        previousValue: existing.reminders.map((r) => new Date(r.remindAt).toISOString()).join(","),
         newValue: payload.reminders.map((r: { remindAt: string }) => r.remindAt).join(","),
         description: "Reminders updated",
       });
