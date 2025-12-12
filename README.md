@@ -1,6 +1,15 @@
 # FocusFlow • Daily Planner
 
+[![codecov](https://codecov.io/gh/Inskape/forge/branch/main/graph/badge.svg)](https://codecov.io/gh/Inskape/forge)
+[![CI](https://github.com/Inskape/forge/actions/workflows/ci.yml/badge.svg)](https://github.com/Inskape/forge/actions/workflows/ci.yml)
+
 A modern, professional Next.js daily task planner for managing lists, tasks, and schedules with ease.
+
+## Quick Stats
+
+- **Test Coverage**: 100% functions and lines covered
+- **Total Tests**: 26 tests passing across 3 test files
+- **CI Status**: Automated testing and coverage reporting
 
 ## Features
 
@@ -194,10 +203,30 @@ Run tests:
 bun test
 ```
 
-Run tests in watch mode:
+Run tests with coverage:
 ```bash
-bun test --watch
+bun test:coverage
 ```
+
+Generate coverage report with HTML output:
+```bash
+bun test:coverage:open
+```
+
+### Current Test Coverage
+
+- **Functions**: 100.00% (All functions covered)
+- **Lines**: 100.00% (All lines covered)
+- **Total Tests**: 26 tests passing across 3 test files
+
+### Coverage Reports
+
+- **Text Summary**: Displayed in terminal after running coverage
+- **LCOV File**: `coverage/lcov.info` (for CI integration)
+- **HTML Report**: `coverage/html/index.html` (for detailed line-by-line analysis)
+- **Codecov Dashboard**: Available via coverage badge above
+
+For detailed coverage setup and CI integration, see [COVERAGE.md](docs/COVERAGE.md).
 
 ## Database Schema
 
