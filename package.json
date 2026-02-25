@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "bun test"
+    "test": "bun test",
+    "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov",
+    "test:coverage:open": "bun test --coverage --coverage-reporter=text --coverage-reporter=html"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
